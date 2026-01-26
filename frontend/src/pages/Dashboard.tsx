@@ -1,3 +1,4 @@
+import { useNavigate } from 'react-router-dom';
 import { useQuery, gql } from '@apollo/client';
 import Layout from '../components/Layout';
 import { ArrowUpCircle, ArrowDownCircle, DollarSign } from 'lucide-react';
@@ -23,10 +24,11 @@ const DASHBOARD_QUERY = gql`
 `;
 
 export default function Dashboard() {
+  const navigate = useNavigate();
   const { data, loading, error } = useQuery(DASHBOARD_QUERY);
 
-  if (loading) return <div className="text-white p-10">Loading...</div>;
-  if (error) return <div className="text-red-500 p-10">Error: {error.message}</div>;
+  if (loading) return <div className="text-white p-10">Carregando...</div>;
+  if (error) return <div className="text-red-500 p-10">Erro: {error.message}</div>;
 
   const transactions = data.transactions;
   const income = transactions
@@ -37,7 +39,6 @@ export default function Dashboard() {
     .reduce((acc: number, t: any) => acc + t.amount, 0);
   const balance = income - expense;
 
-  // Calculate Category Stats for Widget
   const categoryStats = transactions.reduce((acc: any, t: any) => {
     const catName = t.category?.name || 'Sem Categoria';
     if (!acc[catName]) {
@@ -150,7 +151,9 @@ export default function Dashboard() {
                 </div>
                 
                 <div className="p-4 border-t border-gray-50">
-                     <button className="w-full py-3 text-center text-primary font-medium hover:bg-gray-50 rounded-xl transition-colors flex items-center justify-center gap-2">
+                     <button 
+                        onClick={() => navigate('/transactions?controll=new')}
+                        className="w-full py-3 text-center text-primary font-medium hover:bg-gray-50 rounded-xl transition-colors flex items-center justify-center gap-2">
                         + Nova transação
                      </button>
                 </div>

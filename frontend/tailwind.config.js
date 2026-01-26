@@ -7,9 +7,9 @@ export default {
   theme: {
     extend: {
       colors: {
-        primary: "#10B981", // Green from reference
-        secondary: "#1F2937", // Dark gray for text/secondary
-        background: "#F9FAFB", // Gray-50
+        primary: "#10B981", 
+        secondary: "#1F2937", 
+        background: "#F9FAFB", 
       },
       fontFamily: {
         sans: ['Inter', 'sans-serif'],

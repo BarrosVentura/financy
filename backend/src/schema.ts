@@ -47,5 +47,7 @@ export const typeDefs = gql`
     createTransaction(description: String!, amount: Float!, type: String!, date: String!, categoryId: String): Transaction!
     updateTransaction(id: ID!, description: String, amount: Float, type: String, date: String, categoryId: String): Transaction!
     deleteTransaction(id: ID!): Transaction!
+
+    updateCategory(id: ID!, name: String, description: String, icon: String, color: String): Category!
   }
 `;

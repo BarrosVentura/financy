@@ -1,6 +1,6 @@
 import { useQuery, gql } from '@apollo/client';
 import Layout from '../components/Layout';
-import { User, Mail, Calendar, LogOut } from 'lucide-react';
+import { LogOut } from 'lucide-react';
 
 const ME_QUERY = gql`
   query GetMe {
@@ -16,8 +16,8 @@ const ME_QUERY = gql`
 export default function Profile() {
   const { data, loading, error } = useQuery(ME_QUERY);
 
-  if (loading) return <Layout><div className="text-white">Loading...</div></Layout>;
-  if (error) return <Layout><div className="text-red-500">Error: {error.message}</div></Layout>;
+  if (loading) return <Layout><div className="text-white">Carregando...</div></Layout>;
+  if (error) return <Layout><div className="text-red-500">Erro: {error.message}</div></Layout>;
 
   return (
     <Layout>

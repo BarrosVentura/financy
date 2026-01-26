@@ -55,9 +55,26 @@ export const resolvers = {
         },
       });
     },
+    updateCategory: async (_parent: any, args: any, context: Context) => {
+      if (!context.userId) throw new Error('Not authenticated');
+      
+      const category = await context.prisma.category.findFirst({
+         where: { id: args.id, userId: context.userId }
+      });
+      if (!category) throw new Error('Category not found or access denied');
+
+      return context.prisma.category.update({
+        where: { id: args.id },
+        data: {
+          name: args.name,
+          description: args.description,
+          icon: args.icon,
+          color: args.color,
+        },
+      });
+    },
     deleteCategory: async (_parent: any, args: any, context: Context) => {
       if (!context.userId) throw new Error('Not authenticated');
-      // Verify ownership logic implied by simple architecture (or strict check)
       const category = await context.prisma.category.findFirst({
          where: { id: args.id, userId: context.userId }
       });
@@ -81,6 +98,26 @@ export const resolvers = {
          include: { category: true },
        });
     },
+    updateTransaction: async (_parent: any, args: any, context: Context) => {
+       if (!context.userId) throw new Error('Not authenticated');
+       
+       const transaction = await context.prisma.transaction.findFirst({
+         where: { id: args.id, userId: context.userId }
+       });
+       if (!transaction) throw new Error('Transaction not found or access denied');
+
+       return context.prisma.transaction.update({
+         where: { id: args.id },
+         data: {
+           description: args.description,
+           amount: args.amount,
+           type: args.type,
+           date: args.date ? new Date(args.date) : undefined,
+           categoryId: args.categoryId,
+         },
+         include: { category: true },
+       });
+    },
     deleteTransaction: async (_parent: any, args: any, context: Context) => {
        if (!context.userId) throw new Error('Not authenticated');
        const transaction = await context.prisma.transaction.findFirst({
@@ -94,8 +131,6 @@ export const resolvers = {
     }
   },
   Transaction: {
-    // Resolver for nested category if needed, but 'include' in main query handles it often.
-    // Explicit resolver:
     category: (parent: any, args: any, context: Context) => {
         if (!parent.categoryId) return null;
         return context.prisma.category.findUnique({ where: { id: parent.categoryId } });

@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation, gql } from '@apollo/client';
 import Layout from '../components/Layout';
 import Modal from '../components/Modal';
-import { Trash2 } from 'lucide-react';
+import { Trash2, Pencil } from 'lucide-react';
 
 const GET_DATA = gql`
   query GetData {
@@ -32,6 +33,14 @@ const CREATE_TRANSACTION = gql`
   }
 `;
 
+const UPDATE_TRANSACTION = gql`
+  mutation UpdateTransaction($id: ID!, $description: String, $amount: Float, $type: String, $date: String, $categoryId: String) {
+    updateTransaction(id: $id, description: $description, amount: $amount, type: $type, date: $date, categoryId: $categoryId) {
+      id
+    }
+  }
+`;
+
 const DELETE_TRANSACTION = gql`
   mutation DeleteTransaction($id: ID!) {
     deleteTransaction(id: $id) {
@@ -41,11 +50,14 @@ const DELETE_TRANSACTION = gql`
 `;
 
 export default function Transactions() {
+  const [searchParams, setSearchParams] = useSearchParams();
   const { data, loading, error, refetch } = useQuery(GET_DATA);
   const [createTransaction] = useMutation(CREATE_TRANSACTION);
+  const [updateTransaction] = useMutation(UPDATE_TRANSACTION);
   const [deleteTransaction] = useMutation(DELETE_TRANSACTION);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     description: '',
     amount: '',
@@ -54,19 +66,37 @@ export default function Transactions() {
     categoryId: '',
   });
 
-  const handleCreate = async (e: React.FormEvent) => {
+  useEffect(() => {
+    if (searchParams.get('controll') === 'new') {
+        openNewModal();
+        setSearchParams(params => {
+            params.delete('controll');
+            return params;
+        });
+    }
+  }, [searchParams, setSearchParams]);
+
+  const handleCreateOrUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await createTransaction({
-        variables: {
-          description: formData.description,
-          amount: parseFloat(formData.amount),
-          type: formData.type,
-          date: new Date(formData.date).toISOString(), // Or simple string depending on backend
-          categoryId: formData.categoryId || null,
-        },
-      });
+      const variables = {
+        description: formData.description,
+        amount: parseFloat(formData.amount),
+        type: formData.type,
+        date: new Date(formData.date).toISOString(),
+        categoryId: formData.categoryId || null,
+      };
+
+      if (editingId) {
+         await updateTransaction({
+            variables: { id: editingId, ...variables }
+         });
+      } else {
+         await createTransaction({ variables });
+      }
+
       setFormData({ description: '', amount: '', type: 'EXPENSE', date: new Date().toISOString().split('T')[0], categoryId: '' });
+      setEditingId(null);
       setIsModalOpen(false);
       refetch();
     } catch (e) {
@@ -74,8 +104,23 @@ export default function Transactions() {
     }
   };
 
+  const handleEdit = (t: any) => {
+      setEditingId(t.id);
+      
+      const dateStr = new Date(parseInt(t.date)).toISOString().split('T')[0];
+
+      setFormData({
+          description: t.description,
+          amount: t.amount.toString(),
+          type: t.type,
+          date: dateStr,
+          categoryId: t.category?.id || ''
+      });
+      setIsModalOpen(true);
+  }
+
   const handleDelete = async (id: string) => {
-    if (confirm('Are you sure you want to delete this transaction?')) {
+    if (confirm('Tem certeza que deseja excluir esta transação?')) {
       try {
         await deleteTransaction({ variables: { id } });
         refetch();
@@ -85,32 +130,71 @@ export default function Transactions() {
     }
   };
 
-  if (loading) return <Layout><div className="text-white">Loading...</div></Layout>;
-  if (error) return <Layout><div className="text-red-500">Error: {error.message}</div></Layout>;
+  const openNewModal = () => {
+    setEditingId(null);
+    setFormData({ description: '', amount: '', type: 'EXPENSE', date: new Date().toISOString().split('T')[0], categoryId: '' });
+    setIsModalOpen(true);
+  }
+
+  if (loading) return <Layout><div className="text-white">Carregando...</div></Layout>;
+  if (error) return <Layout><div className="text-red-500">Erro: {error.message}</div></Layout>;
 
   return (
     <Layout>
-      <header className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Transações</h1>
-        <p className="text-gray-500">Gerencie todas as suas transações financeiras</p>
+      <header className="mb-8 flex justify-between items-start">
+        <div>
+           <h1 className="text-3xl font-bold text-gray-900 mb-2">Transações</h1>
+           <p className="text-gray-500">Gerencie todas as suas transações financeiras</p>
+        </div>
+        <button  
+          onClick={openNewModal} 
+          className="bg-emerald-800 hover:bg-emerald-900 text-white px-6 py-2.5 rounded-lg font-bold transition-colors shadow-sm flex items-center gap-2"
+        >
+          <span>+</span> Nova transação
+        </button>
       </header>
       
-      {/* Filters (Mock) */}
-      <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 mb-6 flex gap-4">
-         <div className="flex-1">
-             <input type="text" placeholder="Buscar por descrição" className="w-full px-4 py-2 rounded-lg border border-gray-200 outline-none focus:border-primary" />
+      {/* Filters */}
+      <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 mb-6">
+         <div className="grid grid-cols-4 gap-4">
+             <div className="space-y-1.5">
+                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Buscar</label>
+                <div className="relative">
+                   <input type="text" placeholder="Buscar por descrição" className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-gray-200 outline-none focus:border-primary transition-all text-sm" />
+                   <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+                   </div>
+                </div>
+             </div>
+
+             <div className="space-y-1.5">
+                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Tipo</label>
+                <select className="w-full px-4 py-2.5 rounded-lg border border-gray-200 bg-white outline-none focus:border-primary transition-all text-sm appearance-none cursor-pointer">
+                    <option>Todos</option>
+                    <option>Receita</option>
+                    <option>Despesa</option>
+                </select>
+             </div>
+
+             <div className="space-y-1.5">
+                 <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Categoria</label>
+                 <select className="w-full px-4 py-2.5 rounded-lg border border-gray-200 bg-white outline-none focus:border-primary transition-all text-sm appearance-none cursor-pointer">
+                     <option>Todas</option>
+                     {data.categories.map((c: any) => (
+                        <option key={c.id} value={c.id}>{c.name}</option>
+                     ))}
+                 </select>
+             </div>
+
+             <div className="space-y-1.5">
+                 <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Período</label>
+                 <select className="w-full px-4 py-2.5 rounded-lg border border-gray-200 bg-white outline-none focus:border-primary transition-all text-sm appearance-none cursor-pointer">
+                     <option>Novembro / 2025</option>
+                     <option>Dezembro / 2025</option>
+                     <option>Janeiro / 2026</option>
+                 </select>
+             </div>
          </div>
-         <select className="px-4 py-2 rounded-lg border border-gray-200 bg-white outline-none focus:border-primary">
-             <option>Todos</option>
-             <option>Receita</option>
-             <option>Despesa</option>
-         </select>
-         <select className="px-4 py-2 rounded-lg border border-gray-200 bg-white outline-none focus:border-primary">
-             <option>Todas Categorias</option>
-         </select>
-         <button  onClick={() => setIsModalOpen(true)} className="bg-primary hover:bg-emerald-600 text-white px-6 py-2 rounded-lg font-medium transition-colors">
-            + Nova transação
-         </button>
       </div>
 
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
@@ -159,9 +243,12 @@ export default function Transactions() {
                 <td className={`p-5 text-right font-bold ${t.type === 'INCOME' ? 'text-green-600' : 'text-gray-900'}`}>
                   {t.type === 'INCOME' ? '+' : '-'} R$ {t.amount.toFixed(2).replace('.', ',')}
                 </td>
-                <td className="p-5 text-right">
-                  <button onClick={() => handleDelete(t.id)} className="text-gray-400 hover:text-red-500 p-2 hover:bg-red-50 rounded-lg transition-colors">
-                    <Trash2 size={16} />
+                <td className="p-5 text-right flex justify-end gap-2">
+                   <button onClick={() => handleDelete(t.id)} className="w-8 h-8 flex items-center justify-center text-red-500 border border-red-200 rounded-lg hover:bg-red-50 transition-colors">
+                    <Trash2 size={14} />
+                  </button>
+                   <button onClick={() => handleEdit(t)} className="w-8 h-8 flex items-center justify-center text-gray-500 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+                    <Pencil size={14} />
                   </button>
                 </td>
               </tr>
@@ -170,8 +257,8 @@ export default function Transactions() {
         </table>
       </div>
 
-      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Nova transação" subtitle="Registre sua despesa ou receita">
-        <form onSubmit={handleCreate} className="space-y-5">
+      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={editingId ? "Editar transação" : "Nova transação"} subtitle={editingId ? "Edite os detalhes da sua transação" : "Registre sua despesa ou receita"}>
+        <form onSubmit={handleCreateOrUpdate} className="space-y-5">
            
            {/* Type Toggle */}
            <div className="flex p-1 bg-gray-100 rounded-xl">
@@ -268,7 +355,7 @@ export default function Transactions() {
             type="submit"
             className="w-full bg-emerald-800 hover:bg-emerald-900 text-white p-3 rounded-xl font-bold transition-all shadow-lg shadow-emerald-900/20 mt-2 active:scale-95"
           >
-            Salvar
+            {editingId ? "Atualizar" : "Salvar"}
           </button>
         </form>
       </Modal>
