@@ -11,6 +11,9 @@ export const typeDefs = gql`
   type Category {
     id: ID!
     name: String!
+    description: String
+    icon: String
+    color: String
     transactions: [Transaction!]
   }
 
@@ -38,7 +41,7 @@ export const typeDefs = gql`
     signup(name: String!, email: String!, password: String!): AuthPayload!
     login(email: String!, password: String!): AuthPayload!
     
-    createCategory(name: String!): Category!
+    createCategory(name: String!, description: String, icon: String, color: String): Category!
     deleteCategory(id: ID!): Category!
     
     createTransaction(description: String!, amount: Float!, type: String!, date: String!, categoryId: String): Transaction!

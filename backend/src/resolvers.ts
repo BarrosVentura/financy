@@ -48,6 +48,9 @@ export const resolvers = {
       return context.prisma.category.create({
         data: {
           name: args.name,
+          description: args.description,
+          icon: args.icon,
+          color: args.color,
           userId: context.userId,
         },
       });

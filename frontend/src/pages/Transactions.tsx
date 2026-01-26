@@ -170,72 +170,105 @@ export default function Transactions() {
         </table>
       </div>
 
-      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="New Transaction">
-        <form onSubmit={handleCreate} className="space-y-4">
+      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Nova transação" subtitle="Registre sua despesa ou receita">
+        <form onSubmit={handleCreate} className="space-y-5">
+           
+           {/* Type Toggle */}
+           <div className="flex p-1 bg-gray-100 rounded-xl">
+              <button
+                type="button"
+                onClick={() => setFormData({ ...formData, type: 'EXPENSE' })}
+                className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-bold transition-all ${
+                  formData.type === 'EXPENSE' 
+                    ? 'bg-white text-red-600 shadow-sm' 
+                    : 'text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                 <div className={`w-4 h-4 rounded-full border-2 ${formData.type === 'EXPENSE' ? 'border-red-600' : 'border-gray-400'}`}>
+                    {formData.type === 'EXPENSE' && <div className="w-2 h-2 bg-red-600 rounded-full m-0.5" />}
+                 </div>
+                 Despesa
+              </button>
+              <button
+                type="button"
+                onClick={() => setFormData({ ...formData, type: 'INCOME' })}
+                className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-bold transition-all ${
+                  formData.type === 'INCOME' 
+                    ? 'bg-white text-green-600 shadow-sm' 
+                    : 'text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                  <div className={`w-4 h-4 rounded-full border-2 ${formData.type === 'INCOME' ? 'border-green-600' : 'border-gray-400'}`}>
+                    {formData.type === 'INCOME' && <div className="w-2 h-2 bg-green-600 rounded-full m-0.5" />}
+                 </div>
+                 Receita
+              </button>
+           </div>
+
           <div>
-            <label className="block text-sm font-medium mb-1 text-gray-300">Description</label>
+            <label className="block text-sm font-medium mb-1.5 text-gray-700">Descrição</label>
             <input
               type="text"
+              placeholder="Ex. Almoço no restaurante"
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              className="w-full p-2 rounded bg-gray-700 border border-gray-600 focus:border-purple-500 outline-none text-white"
+              className="w-full p-2.5 rounded-lg border border-gray-200 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none text-gray-900 bg-gray-50 placeholder:text-gray-400 transition-all font-medium"
               required
             />
           </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium mb-1 text-gray-300">Amount</label>
-              <input
-                type="number"
-                step="0.01"
-                value={formData.amount}
-                onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
-                className="w-full p-2 rounded bg-gray-700 border border-gray-600 focus:border-purple-500 outline-none text-white"
-                required
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-1 text-gray-300">Type</label>
-              <select
-                value={formData.type}
-                onChange={(e) => setFormData({ ...formData, type: e.target.value })}
-                 className="w-full p-2 rounded bg-gray-700 border border-gray-600 focus:border-purple-500 outline-none text-white"
-              >
-                <option value="EXPENSE">Expense</option>
-                <option value="INCOME">Income</option>
-              </select>
-            </div>
-          </div>
+
           <div className="grid grid-cols-2 gap-4">
              <div>
-              <label className="block text-sm font-medium mb-1 text-gray-300">Date</label>
+              <label className="block text-sm font-medium mb-1.5 text-gray-700">Data</label>
               <input
                 type="date"
                 value={formData.date}
                 onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                className="w-full p-2 rounded bg-gray-700 border border-gray-600 focus:border-purple-500 outline-none text-white"
+                className="w-full p-2.5 rounded-lg border border-gray-200 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none text-gray-900 bg-gray-50 transition-all font-medium"
                 required
               />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1 text-gray-300">Category</label>
-              <select
-                value={formData.categoryId}
-                onChange={(e) => setFormData({ ...formData, categoryId: e.target.value })}
-                className="w-full p-2 rounded bg-gray-700 border border-gray-600 focus:border-purple-500 outline-none text-white"
-              >
-                <option value="">Uncategorized</option>
-                {data.categories.map((c: any) => (
-                  <option key={c.id} value={c.id}>{c.name}</option>
-                ))}
-              </select>
+              <label className="block text-sm font-medium mb-1.5 text-gray-700">Valor</label>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 font-medium">R$</span>
+                <input
+                  type="number"
+                  step="0.01"
+                  placeholder="0,00"
+                  value={formData.amount}
+                  onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
+                  className="w-full pl-9 p-2.5 rounded-lg border border-gray-200 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none text-gray-900 bg-gray-50 placeholder:text-gray-400 transition-all font-bold"
+                  required
+                />
+              </div>
             </div>
           </div>
+          
+          <div>
+              <label className="block text-sm font-medium mb-1.5 text-gray-700">Categoria</label>
+              <div className="relative">
+                <select
+                  value={formData.categoryId}
+                  onChange={(e) => setFormData({ ...formData, categoryId: e.target.value })}
+                  className="w-full p-2.5 rounded-lg border border-gray-200 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none text-gray-900 bg-gray-50 transition-all font-medium appearance-none cursor-pointer"
+                >
+                  <option value="">Selecione</option>
+                  {data.categories.map((c: any) => (
+                    <option key={c.id} value={c.id}>{c.name}</option>
+                  ))}
+                </select>
+                <div className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+                </div>
+              </div>
+            </div>
+
           <button
             type="submit"
-            className="w-full bg-purple-600 hover:bg-purple-700 text-white p-2 rounded font-bold transition-colors mt-4"
+            className="w-full bg-emerald-800 hover:bg-emerald-900 text-white p-3 rounded-xl font-bold transition-all shadow-lg shadow-emerald-900/20 mt-2 active:scale-95"
           >
-            Save Transaction
+            Salvar
           </button>
         </form>
       </Modal>
