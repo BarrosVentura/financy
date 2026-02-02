@@ -2,8 +2,9 @@ import { useState } from 'react';
 import { useQuery, useMutation, gql } from '@apollo/client';
 import Layout from '../components/Layout';
 import Modal from '../components/Modal';
-import { Trash2, Briefcase, Car, Heart, PiggyBank, ShoppingCart, Ticket, Home, Gift, Book, Coffee, Wallet, FileText, Smartphone, Pencil } from 'lucide-react';
+import { Trash2, Briefcase, Car, Heart, PiggyBank, ShoppingCart, Ticket, Home, Gift, Book, Coffee, Wallet, FileText, Smartphone, Pencil, AlertCircle } from 'lucide-react';
 import * as LucideIcons from 'lucide-react';
+import { useToast } from '../contexts/ToastContext';
 
 const ICONS = [
   { name: 'Briefcase', icon: Briefcase },
@@ -87,9 +88,11 @@ export default function Categories() {
   const [createCategory] = useMutation(CREATE_CATEGORY);
   const [updateCategory] = useMutation(UPDATE_CATEGORY);
   const [deleteCategory] = useMutation(DELETE_CATEGORY);
+  const { addToast } = useToast();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [form, setForm] = useState({ name: '', description: '', icon: 'Briefcase', color: 'bg-emerald-500' });
 
   const totalCategories = data?.categories?.length || 0;
@@ -128,12 +131,14 @@ export default function Categories() {
       } else {
         await createCategory({ variables: { ...form } });
       }
-      setForm({ name: '', description: '', icon: 'Briefcase', color: 'bg-emerald-500' });
       setEditingId(null);
       setIsModalOpen(false);
+      setErrorMsg(null);
       refetch();
-    } catch (e) {
+      addToast({ type: 'success', message: `Categoria ${editingId ? 'atualizada' : 'criada'} com sucesso!` });
+    } catch (e: any) {
       console.error(e);
+      addToast({ type: 'error', message: e.message || 'Erro ao salvar categoria' });
     }
   };
 
@@ -153,8 +158,10 @@ export default function Categories() {
       try {
         await deleteCategory({ variables: { id } });
         refetch();
-      } catch (e) {
+        addToast({ type: 'success', message: 'Categoria excluída com sucesso!' });
+      } catch (e: any) {
         console.error(e);
+        addToast({ type: 'error', message: e.message || 'Erro ao excluir categoria' });
       }
     }
   };
@@ -172,6 +179,7 @@ export default function Categories() {
 
   const openNewModal = () => {
     setEditingId(null);
+    setErrorMsg(null);
     setForm({ name: '', description: '', icon: 'Briefcase', color: 'bg-emerald-500' });
     setIsModalOpen(true);
   };
@@ -185,6 +193,12 @@ export default function Categories() {
         <div>
            <h1 className="text-3xl font-bold text-gray-900 mb-2">Categorias</h1>
            <p className="text-gray-500">Organize suas transações por categorias</p>
+           {errorMsg && !isModalOpen && (
+              <div className="mt-4 bg-red-50 text-red-600 p-3 rounded-lg text-sm border border-red-100 flex items-center gap-2">
+                 <AlertCircle size={16} />
+                 {errorMsg}
+              </div>
+           )}
         </div>
         <button
           onClick={openNewModal}
@@ -272,6 +286,12 @@ export default function Categories() {
 
       <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={editingId ? "Editar categoria" : "Nova categoria"} subtitle={editingId ? "Atualize as informações da categoria" : "Organize suas transações com categorias"}>
         <form onSubmit={handleCreateOrUpdate} className="space-y-4">
+           {errorMsg && (
+              <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm border border-red-100 flex items-center gap-2">
+                 <AlertCircle size={16} />
+                 {errorMsg}
+              </div>
+           )}
           <div>
             <label className="block text-sm font-medium mb-1.5 text-gray-700">Título</label>
             <input

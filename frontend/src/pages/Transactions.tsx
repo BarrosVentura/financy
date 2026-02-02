@@ -3,7 +3,9 @@ import { useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation, gql } from '@apollo/client';
 import Layout from '../components/Layout';
 import Modal from '../components/Modal';
-import { Trash2, Pencil } from 'lucide-react';
+import { Trash2, Pencil, AlertCircle } from 'lucide-react';
+import { formatCurrency, formatDate } from '../utils/formatters';
+import { useToast } from '../contexts/ToastContext';
 
 const GET_DATA = gql`
   query GetData {
@@ -55,9 +57,11 @@ export default function Transactions() {
   const [createTransaction] = useMutation(CREATE_TRANSACTION);
   const [updateTransaction] = useMutation(UPDATE_TRANSACTION);
   const [deleteTransaction] = useMutation(DELETE_TRANSACTION);
+  const { addToast } = useToast();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     description: '',
     amount: '',
@@ -98,9 +102,12 @@ export default function Transactions() {
       setFormData({ description: '', amount: '', type: 'EXPENSE', date: new Date().toISOString().split('T')[0], categoryId: '' });
       setEditingId(null);
       setIsModalOpen(false);
+      setErrorMsg(null);
       refetch();
-    } catch (e) {
+      addToast({ type: 'success', message: `Transação ${editingId ? 'atualizada' : 'criada'} com sucesso!` });
+    } catch (e: any) {
       console.error(e);
+      addToast({ type: 'error', message: e.message || 'Erro ao salvar transação' });
     }
   };
 
@@ -124,14 +131,17 @@ export default function Transactions() {
       try {
         await deleteTransaction({ variables: { id } });
         refetch();
-      } catch (e) {
+        addToast({ type: 'success', message: 'Transação excluída com sucesso!' });
+      } catch (e: any) {
         console.error(e);
+        addToast({ type: 'error', message: e.message || 'Erro ao excluir transação' });
       }
     }
   };
 
   const openNewModal = () => {
     setEditingId(null);
+    setErrorMsg(null);
     setFormData({ description: '', amount: '', type: 'EXPENSE', date: new Date().toISOString().split('T')[0], categoryId: '' });
     setIsModalOpen(true);
   }
@@ -145,6 +155,12 @@ export default function Transactions() {
         <div>
            <h1 className="text-3xl font-bold text-gray-900 mb-2">Transações</h1>
            <p className="text-gray-500">Gerencie todas as suas transações financeiras</p>
+           {errorMsg && !isModalOpen && (
+              <div className="mt-4 bg-red-50 text-red-600 p-3 rounded-lg text-sm border border-red-100 flex items-center gap-2">
+                 <AlertCircle size={16} />
+                 {errorMsg}
+              </div>
+           )}
         </div>
         <button  
           onClick={openNewModal} 
@@ -223,7 +239,7 @@ export default function Transactions() {
                     <span className="font-medium text-gray-900">{t.description}</span>
                 </td>
                 <td className="p-5 text-gray-500">
-                  {new Date(parseInt(t.date)).toLocaleDateString('pt-BR')}
+                  {formatDate(parseInt(t.date))}
                 </td>
                 <td className="p-5">
                   <span className={`px-3 py-1 rounded-full text-xs font-medium ${
@@ -241,7 +257,7 @@ export default function Transactions() {
                      </span>
                 </td>
                 <td className={`p-5 text-right font-bold ${t.type === 'INCOME' ? 'text-green-600' : 'text-gray-900'}`}>
-                  {t.type === 'INCOME' ? '+' : '-'} R$ {t.amount.toFixed(2).replace('.', ',')}
+                  {t.type === 'INCOME' ? '+' : '-'} {formatCurrency(t.amount)}
                 </td>
                 <td className="p-5 text-right flex justify-end gap-2">
                    <button onClick={() => handleDelete(t.id)} className="w-8 h-8 flex items-center justify-center text-red-500 border border-red-200 rounded-lg hover:bg-red-50 transition-colors">
@@ -259,6 +275,12 @@ export default function Transactions() {
 
       <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={editingId ? "Editar transação" : "Nova transação"} subtitle={editingId ? "Edite os detalhes da sua transação" : "Registre sua despesa ou receita"}>
         <form onSubmit={handleCreateOrUpdate} className="space-y-5">
+           {errorMsg && (
+              <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm border border-red-100 flex items-center gap-2">
+                 <AlertCircle size={16} />
+                 {errorMsg}
+              </div>
+           )}
            
            {/* Type Toggle */}
            <div className="flex p-1 bg-gray-100 rounded-xl">

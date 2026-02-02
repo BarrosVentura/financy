@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useMutation, gql } from '@apollo/client';
 import { useNavigate, Link } from 'react-router-dom';
+import { useToast } from '../contexts/ToastContext';
 
 const LOGIN_MUTATION = gql`
   mutation Login($email: String!, $password: String!) {
@@ -18,7 +19,8 @@ export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const navigate = useNavigate();
-  const [login, { loading, error }] = useMutation(LOGIN_MUTATION);
+  const { addToast } = useToast();
+  const [login, { loading }] = useMutation(LOGIN_MUTATION);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -26,9 +28,14 @@ export default function Login() {
       const { data } = await login({ variables: { email, password } });
       localStorage.setItem('token', data.login.token);
       localStorage.setItem('user', JSON.stringify(data.login.user));
+      addToast({ type: 'success', message: 'Login realizado com sucesso!' });
       navigate('/');
-    } catch (e) {
+    } catch (e: any) {
       console.error(e);
+      addToast({ 
+        type: 'error', 
+        message: e.message || 'Falha no login. Verifique suas credenciais.' 
+      });
     }
   };
 
@@ -41,9 +48,7 @@ export default function Login() {
       <div className="bg-white p-10 rounded-2xl shadow-sm border border-gray-100 w-full max-w-md">
         <h2 className="text-2xl font-bold mb-2 text-center text-gray-900">Fazer login</h2>
         <p className="text-gray-500 text-center mb-8">Entre na sua conta para continuar</p>
-        
-        {error && <div className="bg-red-50 text-red-600 p-3 rounded-lg mb-6 text-sm border border-red-100">{error.message}</div>}
-        
+                
         <form onSubmit={handleSubmit} className="space-y-5">
           <div>
             <label className="block text-sm font-medium mb-1.5 text-gray-700">E-mail</label>

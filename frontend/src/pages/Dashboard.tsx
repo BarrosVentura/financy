@@ -1,7 +1,8 @@
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Navigate } from 'react-router-dom';
 import { useQuery, gql } from '@apollo/client';
 import Layout from '../components/Layout';
 import { ArrowUpCircle, ArrowDownCircle, DollarSign } from 'lucide-react';
+import { formatCurrency, formatDate } from '../utils/formatters';
 
 const DASHBOARD_QUERY = gql`
   query GetDashboardData {
@@ -28,7 +29,10 @@ export default function Dashboard() {
   const { data, loading, error } = useQuery(DASHBOARD_QUERY);
 
   if (loading) return <div className="text-white p-10">Carregando...</div>;
-  if (error) return <div className="text-red-500 p-10">Erro: {error.message}</div>;
+  if (error) {
+    localStorage.removeItem('token');
+    return <Navigate to="/login" />;
+  }
 
   const transactions = data.transactions;
   const income = transactions
@@ -71,7 +75,7 @@ export default function Dashboard() {
                     </div>
                     <span>Saldo Total</span>
                  </div>
-                 <h3 className="text-3xl font-bold text-gray-900">R$ {balance.toFixed(2).replace('.', ',')}</h3>
+                 <h3 className="text-3xl font-bold text-gray-900">{formatCurrency(balance)}</h3>
             </div>
         </div>
         
@@ -83,7 +87,7 @@ export default function Dashboard() {
                     </div>
                     <span>Receitas do Mês</span>
                  </div>
-                 <h3 className="text-3xl font-bold text-gray-900">R$ {income.toFixed(2).replace('.', ',')}</h3>
+                 <h3 className="text-3xl font-bold text-gray-900">{formatCurrency(income)}</h3>
             </div>
         </div>
 
@@ -95,7 +99,7 @@ export default function Dashboard() {
                     </div>
                     <span>Despesas do Mês</span>
                  </div>
-                 <h3 className="text-3xl font-bold text-gray-900">R$ {expense.toFixed(2).replace('.', ',')}</h3>
+                 <h3 className="text-3xl font-bold text-gray-900">{formatCurrency(expense)}</h3>
             </div>
         </div>
       </div>
@@ -124,7 +128,7 @@ export default function Dashboard() {
                             </div>
                             <div>
                                 <h4 className="font-semibold text-gray-900">{t.description}</h4>
-                                <p className="text-sm text-gray-400">{new Date(parseInt(t.date)).toLocaleDateString('pt-BR')}</p>
+                                <p className="text-sm text-gray-400">{formatDate(parseInt(t.date))}</p>
                             </div>
                         </div>
 
@@ -138,7 +142,7 @@ export default function Dashboard() {
                                 {t.type === 'INCOME' ? 'Receita' : t.category?.name || 'Geral'}
                              </span>
                              <span className={`font-bold ${t.type === 'INCOME' ? 'text-green-600' : 'text-red-900'}`}>
-                                {t.type === 'INCOME' ? '+' : '-'} R$ {t.amount.toFixed(2).replace('.', ',')}
+                                {t.type === 'INCOME' ? '+' : '-'} {formatCurrency(t.amount)}
                              </span>
                              {/* Small indicator circle */}
                              <div className={`w-2 h-2 rounded-full ${t.type === 'INCOME' ? 'bg-green-500' : 'bg-red-500'}`}></div>
@@ -183,7 +187,7 @@ export default function Dashboard() {
                             </div>
                             <div className="flex items-center gap-4">
                                 <span className="text-sm text-gray-400">{cat.count} items</span>
-                                <span className="text-sm font-bold text-gray-900">R$ {cat.amount.toFixed(2).replace('.', ',')}</span>
+                                <span className="text-sm font-bold text-gray-900">{formatCurrency(cat.amount)}</span>
                             </div>
                         </div>
                     ))}
